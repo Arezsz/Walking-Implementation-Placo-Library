@@ -13,7 +13,6 @@ from placo_utils.visualization import (
 
 warnings.filterwarnings("ignore")
 
-#  Ambil Argumen (jalanin pake -p atau -m) 
 parser = argparse.ArgumentParser(description="Keyboard-walk.")
 parser.add_argument("-p", "--pybullet", action="store_true", help="PyBullet simulation")
 parser.add_argument("-m", "--meshcat", action="store_true", help="MeshCat visualization")
@@ -27,7 +26,7 @@ model_filename = "../models/sigmaban/robot.urdf"
 #  Load Robot 
 robot = placo.HumanoidRobot(model_filename)
 
-#  Konfigurasi Parameter Jalan (PENTING) 
+#  Konfigurasi Parameter   
 parameters = placo.HumanoidParameters()
 parameters.single_support_duration = 0.06
 parameters.single_support_timesteps = 10
@@ -60,7 +59,7 @@ solver.dt = DT
 tasks = placo.WalkTasks()
 tasks.initialize_tasks(solver, robot)
 
-#  Task tambahan: 'kunci' posisi tangan & kepala 
+
 elbow = -50 * np.pi / 180
 shoulder_roll = 0 * np.pi / 180
 shoulder_pitch = 20 * np.pi / 180
@@ -79,7 +78,7 @@ joints_task.set_joints(
 )
 joints_task.configure("joints", "soft", 1.0)
 
-#  Fungsi: Reset Pose Kinematik (Placo) 
+
 def reset_robot_kinematics():
     print("Resetting kinematic pose...")
     tasks.reach_initial_pose(
@@ -90,27 +89,25 @@ def reset_robot_kinematics():
     )
     walker.reset(support_left=True)
 
-#  PENTING: Set robot ke pose awal (berdiri) 
+
 print("Placing the robot in the initial position...")
 walker = placo.DummyWalk(robot, parameters)
 reset_robot_kinematics() 
 robot.add_q_noise(1e-6)
 
-#  Konfigurasi Kontrol Keyboard 
+
 BASE_DX  = 0.05
 BASE_DY  = 0.04
 BASE_DTH = np.deg2rad(8.0)
 STEP_SEC = 0.16
 SWAP_TURN = True
 
-#  Inisialisasi Listener Keyboard 
 try:
     from pynput import keyboard
 except Exception:
     print("Harap install pynput:  pip install pynput")
     raise
 
-#  Kelas: Logika Pembacaan Keyboard 
 class KeyState:
     def __init__(self):
         self.down = set()
@@ -164,8 +161,6 @@ class KeyState:
 
         if SWAP_TURN:
             dth = (BASE_DTH if "left" in self.down else 0.0) - (BASE_DTH if "right" in self.down else 0.0)
-        else:
-            dth = (BASE_DTH if "right" in self.down else 0.0) - (BASE_DTH if "left" in self.down else 0.0)
 
         return dx * mul, dy * mul, dth * mul, self.quit
 
@@ -216,8 +211,7 @@ else:
     print("No visualization selected, use either -p or -m")
     listener.stop()
     exit()
-
-#  Inisialisasi Variabel Loop 
+ 
 start_t = time.time()
 last_display = time.time()
 
@@ -229,7 +223,7 @@ print("Keyboard: ↑/↓ maju/mundur, ←/→ putar, Q/E geser, R reset, Shift/C
 
 #  Loop Simulasi Utama 
 while True:
-    #  Cek Tombol Reset 
+
     if keys.get_reset_event():
         reset_robot_kinematics()
         in_step = False
@@ -246,12 +240,12 @@ while True:
     robot.update_support_side("left" if use_left else "right")
     robot.ensure_on_floor()
 
-    #  Ambil Input Keyboard 
+
+
     dx, dy, dth, quit_now = keys.sample()
     if quit_now:
         break
 
-    #  Kirim Perintah Jalan (Jika Ada Input) 
     if not in_step and (abs(dx) + abs(dy) + abs(dth) > 1e-9):
         dx = np.clip(dx, -parameters.walk_max_dx_backward, parameters.walk_max_dx_forward)
         dy = np.clip(dy, -parameters.walk_max_dy, parameters.walk_max_dy)
@@ -285,6 +279,5 @@ while True:
             last_display = time.time()
             viz.display(robot.state.q)
 
-#  Selesai/Cleanup 
 listener.stop()
 print("Script stopped.")
